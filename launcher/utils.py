@@ -29,10 +29,10 @@ def find_pids_on_port(port: int) -> List[int]:
     command = ""
     try:
         if system_platform == "Linux" or system_platform == "Darwin":
-            command = f"lsof -ti :{port} -sTCP:LISTEN"
+            command = ["lsof", "-ti", f":{port}", "-sTCP:LISTEN"]
             process = subprocess.Popen(
                 command,
-                shell=True,
+                shell=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -50,10 +50,10 @@ def find_pids_on_port(port: int) -> List[int]:
                     f"Failed to execute lsof command (return code {process.returncode}): {stderr.strip()}"
                 )
         elif system_platform == "Windows":
-            command = f'netstat -ano -p TCP | findstr "LISTENING" | findstr ":{port} "'
+            command = ["netstat", "-ano", "-p", "TCP"]
             process = subprocess.Popen(
                 command,
-                shell=True,
+                shell=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -63,23 +63,24 @@ def find_pids_on_port(port: int) -> List[int]:
                 for line in stdout.strip().split("\n"):
                     parts = line.split()
                     if (
-                        len(parts) >= 4
+                        len(parts) >= 5
                         and parts[0].upper() == "TCP"
                         and f":{port}" in parts[1]
+                        and parts[3].upper() == "LISTENING"
                     ):
                         if parts[-1].isdigit():
                             pids.append(int(parts[-1]))
                 pids = list(set(pids))  # Deduplicate
-            elif process.returncode not in [0, 1]:  # findstr returns 1 when not found
+            elif process.returncode not in [0, 1]:
                 logger.warning(
-                    f"Failed to execute netstat/findstr command (return code {process.returncode}): {stderr.strip()}"
+                    f"Failed to execute netstat command (return code {process.returncode}): {stderr.strip()}"
                 )
         else:
             logger.warning(
                 f"Unsupported operating system '{system_platform}' for finding processes on port."
             )
     except FileNotFoundError:
-        cmd_name = command.split()[0] if command else "required tool"
+        cmd_name = command[0] if isinstance(command, list) else (command.split()[0] if command else "required tool")
         logger.error(f"Command '{cmd_name}' not found.")
     except subprocess.TimeoutExpired:
         logger.error(f"Command '{command}' timed out.")
@@ -95,8 +96,8 @@ def kill_process_interactive(pid: int) -> bool:
     try:
         if system_platform == "Linux" or system_platform == "Darwin":
             result_term = subprocess.run(
-                f"kill {pid}",
-                shell=True,
+                ["kill", str(pid)],
+                shell=False,
                 capture_output=True,
                 text=True,
                 timeout=3,
@@ -110,8 +111,8 @@ def kill_process_interactive(pid: int) -> bool:
                     f"    PID {pid} SIGTERM failed: {result_term.stderr.strip() or result_term.stdout.strip()}. Trying SIGKILL..."
                 )
                 result_kill = subprocess.run(
-                    f"kill -9 {pid}",
-                    shell=True,
+                    ["kill", "-9", str(pid)],
+                    shell=False,
                     capture_output=True,
                     text=True,
                     timeout=3,
@@ -125,10 +126,9 @@ def kill_process_interactive(pid: int) -> bool:
                         f"    ✗ PID {pid} SIGKILL failed: {result_kill.stderr.strip() or result_kill.stdout.strip()}."
                     )
         elif system_platform == "Windows":
-            command_desc = f"taskkill /PID {pid} /T /F"
             result = subprocess.run(
-                command_desc,
-                shell=True,
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                shell=False,
                 capture_output=True,
                 text=True,
                 timeout=5,
