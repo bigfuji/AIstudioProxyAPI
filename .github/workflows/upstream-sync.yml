@@ -74,7 +74,7 @@ jobs:
           git remote add upstream https://github.com/CJackHwang/AIstudioProxyAPI.git
           
           echo "Fetching upstream changes..."
-          git fetch upstream main --tags
+          git fetch upstream main --no-tags
           
           echo "Upstream remote added and fetched successfully."
 
