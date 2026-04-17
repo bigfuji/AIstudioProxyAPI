@@ -160,41 +160,20 @@ async def switch_ai_studio_model(page: AsyncPage, model_id: str, req_id: str) ->
             if page_display_match:
                 try:
                     logger.debug("[Model] Re-enabling temporary chat mode...")
-                    incognito_button_locator = page.locator(
-                        'button[aria-label="Temporary chat toggle"]'
-                    )
+                    from browser_utils.initialization import enable_temporary_chat_mode
 
-                    await incognito_button_locator.wait_for(
-                        state="visible", timeout=5000
-                    )
-
-                    button_classes = await incognito_button_locator.get_attribute(
-                        "class"
-                    )
-
-                    if button_classes and "ms-button-active" in button_classes:
-                        logger.debug("[Model] Temporary chat mode already active")
+                    enabled = await enable_temporary_chat_mode(page)
+                    if enabled:
+                        logger.debug("[Model] Temporary chat mode enabled or already active")
                     else:
-                        logger.debug("[Model] Clicking to open temporary chat mode...")
-                        await incognito_button_locator.click(timeout=3000)
-                        await asyncio.sleep(0.5)
-
-                        updated_classes = await incognito_button_locator.get_attribute(
-                            "class"
+                        logger.warning(
+                            "[Model] Temporary chat mode state verification failed"
                         )
-                        if updated_classes and "ms-button-active" in updated_classes:
-                            logger.debug("[Model] Temporary chat mode enabled")
-                        else:
-                            logger.warning(
-                                "Temporary chat mode state verification failed after click, may not have opened successfully."
-                            )
 
                 except asyncio.CancelledError:
                     raise
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to re-enable temporary chat mode after model switching: {e}"
-                    )
+                    logger.warning(f"Failed to re-enable temporary chat mode after model switching: {e}")
 
                 # Invalidate function calling cache on model switch
                 try:
