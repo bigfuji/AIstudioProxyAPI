@@ -97,9 +97,9 @@ def _find_processes_on_port(port: int) -> list[ProcessInfo]:
 
     try:
         if system in ("Linux", "Darwin"):
-            cmd = f"lsof -ti tcp:{port} -sTCP:LISTEN"
+            cmd = ["lsof", "-ti", f"tcp:{port}", "-sTCP:LISTEN"]
             result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=5
+                cmd, shell=False, capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0 and result.stdout.strip():
                 pids = [
@@ -110,10 +110,10 @@ def _find_processes_on_port(port: int) -> list[ProcessInfo]:
                     processes.append(ProcessInfo(pid=pid, name=name))
 
         elif system == "Windows":
-            cmd = "netstat -ano -p TCP"
+            cmd = ["netstat", "-ano", "-p", "TCP"]
             result = subprocess.run(
                 cmd,
-                shell=True,
+                shell=False,
                 capture_output=True,
                 text=True,
                 timeout=10,
