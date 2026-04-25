@@ -20,7 +20,7 @@ async def get_api_keys(logger: logging.Logger = Depends(get_logger)):
 
     try:
         auth_utils.initialize_keys()
-        keys_info = [{"value": key, "status": "Valid"} for key in auth_utils.API_KEYS]
+        keys_info = list(auth_utils.API_KEYS)
         return JSONResponse(
             content={"success": True, "keys": keys_info, "total_count": len(keys_info)}
         )
